@@ -1,0 +1,4 @@
+flask==1.1.4
+pandas==1.5.2
+sqlalchemy==1.4.26
+sqlalchemy-utils==1.4.26

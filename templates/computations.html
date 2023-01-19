@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html>
+   <head>
+    <title>SimpleDataApp</title>
+    <link rel="icon" type="image/x-icon" href="./static/images/favicon.ico">
+    <script src='https://cdn.plot.ly/plotly-2.17.1.min.js'></script>
+    <link href="https://fonts.googleapis.com/css?family=Alegreya+Sans&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./static/style.css">
+   </head>
+   <body>
+    <nav id="navbar">
+      <ul>
+        <a  href="/"><li>Home</li></a>
+        <a href="/upload/dataset"><li>Upload Dataset</li></a>
+        <a href="/computations"><li>Plot</li></a>
+      </ul>
+      </nav>
+      <div class="w-50" style="
+      margin-top:10px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      align-items: center;
+  ">
+  <h1 style=' font-family: Montserrat, sans-serif;color:#dd5; ' >Computations</h1>
+  
+
+    
+    <div class="select ">
+      
+      <select class="dataset" id="ops-dataset" required oninput="loadColumsData('ops-dataset','ops-columns')">
+        <option disabled selected value="" >Select Dataset</option>
+      </select>
+    </div>
+    <div class="select ">
+        
+        <select class=" columns" id="ops-columns" required>
+          <option selected disabled value="">Select Column</option>
+        </select>
+
+      </div>
+      <div class="select ">
+        
+        <select  id="ops">
+          <option selected disabled value="">Select Operation</option>
+          <option value="MIN">MIN</option>
+          <option value="MAX">MAX</option>
+          <option value="SUM">SUM</option>
+        </select>
+        
+      </div>
+      <button class="custom-btn btn-16"  onclick="compute()" class="btn btn-primary">Compute</button>
+      <h1 style='display:none;' id="ops_value" ></h1>
+    </div>
+    <h1 style=' text-align:center; font-family: Montserrat, sans-serif;color:#dd5;' >Plot Graphs</h1>
+        <div style="
+    display: flex;
+    justify-content: center;
+    align-items:center;
+    gap: 10px;
+">
+
+          <div style="
+    display: flex;
+    flex-direction: column;
+    align-items:center;
+    gap: 10px;
+">
+      <div class="select ">
+        
+        <select class="form-control dataset" id="plot-dataset" oninput="loadColumsData('plot-dataset','plot-column-x')">
+          <option disabled selected value="" >Select Dataset</option>
+        </select>
+      </div>
+      <div class="select ">
+          
+          <select class="form-control plot-columns" id="plot-column-x">
+            <option selected disabled value="">Select Column</option>
+          </select>
+        </div>
+          <div class="select " >
+           
+            <select class="form-control plot-columns" id="plot-column-y">
+              <option selected disabled value="">Select Column</option>
+            </select>
+            
+        </div>
+        <button class="custom-btn btn-16"  onclick="plotGraph()" class="btn btn-primary">Plot</button>
+      
+    </div>
+      <div>
+        <div id="graph" ></div>
+      </div>
+      </div>
+ 
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.min.js" integrity="sha384-cuYeSxntonz0PPNlHhBs68uyIAVpIIOZZ5JqeqvYYIcEL727kskC66kF92t6Xl2V" crossorigin="anonymous"></script>
+<script>
+    function loadDataSets() {
+        var ele = document.getElementsByClassName("dataset");
+        const xhttp = new XMLHttpRequest();
+        xhttp.onload = function() {
+          res = JSON.parse(this.responseText)
+          if(!res.length){
+            alert('Please Upload a dataset to Compute or Plot graphs')
+            window.location = '/upload/dataset'
+          }
+            for(x of ele)
+            {
+           for(i of res){
+            option= document.createElement("option");
+            option.value= i;
+            option.text= i;
+            x.add(option)
+           }
+        }
+           console.log(res)
+          }
+        xhttp.open("GET", "/dataset", true);
+        xhttp.send();
+      }
+      loadDataSets()
+</script>
+<script>
+    function loadColumsData(dataId,columnId){
+        
+        var dataset = document.getElementById(dataId);
+        var column = document.getElementById(columnId);
+        const xhttp = new XMLHttpRequest();
+        const url = `/fetchColumns/${dataset.value}`
+        xhttp.onload = function() {
+          res = JSON.parse(this.responseText)
+            column.innerHTML = ''
+           for(i of res){
+            option= document.createElement("option");
+            option.value= i;
+            option.text= i;
+            column.add(option)
+           }
+          if(columnId == 'plot-column-x'){
+          let columnY = document.getElementById('plot-column-y')
+          let clone = column.cloneNode(true)
+          clone.setAttribute('id','plot-column-y')
+          var trElement = columnY.parentNode;
+          trElement.removeChild(columnY);
+          trElement.appendChild(clone)
+          }
+           console.log(res)
+          }
+        xhttp.open("GET", url, true);
+        xhttp.send();
+      }
+   
+</script>
+<script>
+    function compute(){
+        var dataset = document.getElementById("ops-dataset").value
+        var columnName = document.getElementById("ops-columns").value
+        var operation = document.getElementById("ops").value
+        if(dataset && columnName && operation){
+        var json_data = {}
+        json_data['columnName'] = columnName
+        json_data['operation'] = operation
+        const url = `/dataset/${dataset}/compute`;
+        const xhttp = new XMLHttpRequest();
+        xhttp.onload = function() {
+           resp = JSON.parse(this.responseText)
+           h1 = document.getElementById("ops_value")
+           h1.innerHTML = resp['res']
+           h1.setAttribute('style'," border-radius:5px; border-style: solid;padding:5px; font-family: Montserrat, sans-serif;color:rgb(85, 160, 221);")
+          }
+        xhttp.open("POST", url, true);
+        xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+        xhttp.send(JSON.stringify(json_data));
+        }
+        else{
+          if(!dataset&&!operation&&!columnName){
+            alert('select dataset ,columns and operation to compute')
+          }
+         
+          else if(!operation){
+            alert('select operation to compute')
+          }
+          
+        }
+    }
+    
+</script>
+<script>
+ 
+</script>
+<script>
+function plotter(data,col1,col2){
+  console.log(data)
+  var trace1 = {
+    x:data['x_axis'],
+    y: data['y_axis'],   
+    mode: 'markers',
+    type: 'scatter'
+  };
+  layout= {
+    title:`ColumnNames: ${col1} , ${col2}`,
+    font:{color:'white'},
+    plot_bgcolor:"#2a2f37",
+    xaxis:{color:'#ffff'},
+    yaxis:{color:'#ffff'},
+    paper_bgcolor:"#24282f",
+ 
+}
+  Plotly.newPlot('graph',[trace1],layout);
+}
+
+
+
+
+
+
+
+
+
+  function plotGraph(){
+    var dataset = document.getElementById('plot-dataset').value;
+    var column1 = document.getElementById('plot-column-x').value;
+    var column2 = document.getElementById('plot-column-y').value;
+    if(dataset && column1 &&column2){
+    const url = `/dataset/${dataset}/plot`
+    let data = {
+      column1: [column1],
+      column2:[column2]
+    }
+    var params = new URLSearchParams(data).toString()
+
+    const xhttp = new XMLHttpRequest();
+        xhttp.onload = function() {
+          res = JSON.parse(this.responseText)
+          plotter(res,column1,column2)
+        }
+    xhttp.open("GET", url+ '?'+ params, true);
+    xhttp.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+    xhttp.send();
+    }
+    else{
+      alert("Select Data to plot")
+    }
+  }
+</script>
+  </body>
+  </html>
